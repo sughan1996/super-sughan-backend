@@ -27,7 +27,7 @@ if __name__ == "__main__":
     # For local testing
     test_event = {
         "body": json.dumps({
-            "text": "Hey Brad, what's the good word"
+            "text": "Hey Brad, what's the best way to handle a tough situation?"
         })
     }
     response = assistant_controller(test_event)

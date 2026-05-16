@@ -3,7 +3,7 @@ import random
 
 from openai import OpenAI
 
-from config import open_ai_api_key
+from config import open_ai_api_key, open_ai_model
 from prompts.AppBradPittPrompts import BRAD_PITT_PROMPT, BRAD_PITT_NO_RESPONSE
 from utils.AppExceptions import AppBaseException
 from utils.AppLogger import logger
@@ -54,9 +54,9 @@ def generate_text(messages: list) -> str:
     """
 
     response = OpenAiClient.chat.completions.create(
-        model="gpt-5-mini",
+        model=open_ai_model,
         messages=messages,
-        max_completion_tokens=400,
+        max_completion_tokens=120,
     )
 
     logger.info(

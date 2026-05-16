@@ -2,15 +2,16 @@ from app.utils.AppExceptions import AppBaseException
 from app.utils.AppLogger import logger
 
 
-def weather_controller(event):
+def error_controller(event):
     """
     AWS Lambda entrypoint for cooking-related requests.
     """
     try:
-        # Placeholder for future cooking logic
+        path = event.get("path", None)
         return {
             "statusCode": 200,
-            "body": "Weather controller is under construction"
+            "path": path,
+            "body": "Login Error"
         }
     except Exception as error:
         raise AppBaseException(f"Error processing cooking request: {error}")

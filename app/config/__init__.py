@@ -13,6 +13,7 @@ try:
     password = os.getenv('password')
     database_url = os.getenv('database')
     open_ai_api_key = os.getenv('open_ai_api_key')
+    open_ai_model = os.getenv('open_ai_model')
 except Exception as err:
     raise AppBaseException(f"Error loading environment variables: {err}")
 
