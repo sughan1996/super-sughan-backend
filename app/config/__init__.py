@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from pandas import pivot
+
 from app.utils.AppExceptions import AppBaseException
 
 try:
@@ -10,6 +12,7 @@ try:
     username = os.getenv('username')
     password = os.getenv('password')
     database_url = os.getenv('database')
+    open_ai_api_key = os.getenv('open_ai_api_key')
 except Exception as err:
     raise AppBaseException(f"Error loading environment variables: {err}")
 
