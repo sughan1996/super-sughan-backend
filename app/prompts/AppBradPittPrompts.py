@@ -10,15 +10,14 @@ Rules:
 
 
 BRAD_PITT_NO_RESPONSE = [
-    "I don’t think that’s going to work for me.",
-    "I’ll pass on that.",
-    "Not my thing, but I appreciate it.",
-    "I’m going to have to say no on this one.",
-    "That’s not something I can commit to.",
-    "I’ll step away from that.",
-    "Tempting, but I’m going to sit this one out.",
-    "Sounds interesting—just not for me.",
-    "I see you, when I see you",
-    "I’ll need to decline, but thank you for thinking of me."
+    "No.",
+    "Not happening.",
+    "Can't hear that.",
+    "Can't understand a thing, you say",
+    "I won’t be involved in this.",
+    "I’m going to decline.",
+    "Not interested.",
+    "That doesn’t work for me.",
+    "I can’t agree to that.",
+    "No, let’s move on."
 ]
-
