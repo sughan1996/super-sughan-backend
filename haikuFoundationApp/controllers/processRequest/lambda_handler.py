@@ -1,6 +1,18 @@
 import json
 import random
-from re import search
+import ssl
+from urllib.request import urlopen
+
+import certifi
+from jose import jwt
+from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
+
+AWS_REGION = "us-east-1"
+COGNITO_USER_POOL_ID = "us-east-1_1pgqSzf45"
+COGNITO_CLIENT_ID = "3q34c48o6fvaqbdmssvuovu86k"
+
+# Cache JWKS per warm container to avoid repeated fetches
+JWKS_CACHE = {"jwks": None}
 
 WELCOME_NOTE = ("Welcome to the Haiku Foundation. We’re glad you’re here. "
                 "This is a space dedicated to haiku—simple, focused poetry that captures meaning in just a few lines. "
@@ -663,6 +675,76 @@ def build_response(status, body):
     }
 
 
+def get_jwks(jwks_url: str) -> dict:
+  if JWKS_CACHE["jwks"] is None:
+    # Use certifi CA bundle to avoid local trust store issues
+    context = ssl.create_default_context(cafile=certifi.where())
+    with urlopen(jwks_url, context=context) as resp:
+      JWKS_CACHE["jwks"] = json.load(resp)
+  return JWKS_CACHE["jwks"]
+
+
+def validate_jwt_token(auth_header: str) -> dict:
+  """
+  Validate JWT token from Authorization header.
+  Returns decoded token claims if valid.
+  Raises Exception if invalid.
+  """
+  if not auth_header or not auth_header.startswith('Bearer '):
+    raise Exception('Missing or invalid Authorization header')
+
+  token = auth_header.split(' ')[1]
+
+  region = AWS_REGION
+  user_pool_id = COGNITO_USER_POOL_ID
+  client_id = COGNITO_CLIENT_ID
+  if not user_pool_id or not client_id:
+    raise Exception('Missing Cognito configuration')
+
+  issuer = f'https://cognito-idp.{region}.amazonaws.com/{user_pool_id}'
+  jwks_url = f'{issuer}/.well-known/jwks.json'
+
+  jwks = get_jwks(jwks_url)
+
+  try:
+    # Select the correct key from JWKS using token header kid
+    headers = jwt.get_unverified_header(token)
+    kid = headers.get('kid')
+    if not kid:
+      raise Exception('Missing kid in token header')
+    key = next((k for k in jwks.get('keys', []) if k.get('kid') == kid), None)
+    if not key:
+      raise Exception('Unable to find matching JWK for token')
+
+    # Decode and validate with JOSE
+    claims = jwt.decode(
+      token,
+      key,
+      algorithms=['RS256'],
+      options={
+        'verify_aud': False,  # handle aud/client_id manually below
+        'verify_at_hash': False
+      },
+      issuer=issuer
+    )
+
+    # Validate client id. For id/access tokens, the field can be 'aud' or 'client_id'
+    token_client_id = claims.get('aud') or claims.get('client_id')
+    if token_client_id != client_id:
+      raise JWTClaimsError('Invalid client_id')
+
+    return claims
+
+  except ExpiredSignatureError:
+    raise Exception('Token expired')
+  except (JWTClaimsError, JWTError) as e:
+    raise Exception(f'Invalid token: {str(e)}')
+
+
+# =========================================================
+# Lambda Handler
+# =========================================================
+
 def lambda_handler(event, context):
     print("EVENT:", event)
     http_method = (
@@ -670,49 +752,16 @@ def lambda_handler(event, context):
         .upper()
     )
 
-    # =====================================================
-    # HANDLE CORS PREFLIGHT
-    # =====================================================
-
     if http_method == "OPTIONS":
-
-        return build_response(
-            200,
-            {
-                "message": "CORS preflight success"
-            }
-        )
-
-    # =====================================================
-    # PARSE BODY
-    # =====================================================
+      return build_response(200, {"message": "CORS preflight success"})
 
     body = parse_body(event)
 
-
-    # =====================================================
-    # ROUTE
-    # =====================================================
-
     request_method = body.get("requestMethod")
-
     if not request_method:
+      return build_response(400, {"error": "Missing requestMethod"})
 
-        return build_response(
-            400,
-            {
-                "error": "Missing requestMethod"
-            }
-        )
-
-    controller = CONTROLLERS.get(
-        request_method,
-        FALLBACK
-    )
-
-    # =====================================================
-    # METHOD RESOLUTION
-    # =====================================================
+    controller = CONTROLLERS.get(request_method, FALLBACK)
 
     handler = getattr(
         controller,
@@ -721,29 +770,24 @@ def lambda_handler(event, context):
     )
 
     if not handler:
+      return build_response(405, {"error": f"{http_method} not supported for {request_method}"})
 
-        return build_response(
-            405,
-            {
-                "error": f"{http_method} not supported for {request_method}"
-            }
-        )
-
-    # =====================================================
-    # EXECUTE CONTROLLER
-    # =====================================================
+    # Enforce JWT on GET and POST
+    user_claims = None
+    if http_method in ("GET", "POST"):
+      headers = event.get('headers', {}) or {}
+      auth_header = headers.get('Authorization') or headers.get('authorization')
+      try:
+        user_claims = validate_jwt_token(auth_header)
+      except Exception as e:
+        return build_response(401, {"error": str(e)})
 
     controller_event = {
-
         "httpMethod": http_method,
-
         "route": request_method,
-
         "body": body,
-
         "headers": event.get("headers", {}),
-
-        "user": (
+      "user": user_claims or (
             event
             .get("requestContext", {})
             .get("authorizer")
@@ -752,14 +796,7 @@ def lambda_handler(event, context):
 
     result = handler(controller_event)
 
-    # =====================================================
-    # SUCCESS RESPONSE
-    # =====================================================
-
-    return build_response(
-        200,
-        result
-    )
+    return build_response(200, result)
 
 
 # =========================================================
@@ -769,11 +806,54 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     # For local testing
-    test_event = {
-        "httpMethod": "POST",
+    event = {
+      "httpMethod": "OPTIONS",
         "body": json.dumps({"requestMethod": "/topics"})
     }
-    response = lambda_handler(test_event, None)
+    response = lambda_handler(event, None)
     print(response)
 
+    event = {'resource': '/{proxy+}', 'path': '/haiku-foundation-path', 'httpMethod': 'POST',
+             'headers': {'accept': 'application/json, text/plain, */*', 'accept-encoding': 'gzip, deflate, br, zstd',
+                         'accept-language': 'en-US,en;q=0.9',
+                         'Authorization': 'Bearer eyJraWQiOiJCYk5XMlFHNnVnTUtZSGJWUGRTdysrcDVzUG1TTzVPR20wWk9DVVZNbmhVPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI4NGE4NjRkOC0yMGQxLTcwNjQtZGYxNC0yYTNhZmVjMGYxMjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV8xcGdxU3pmNDUiLCJjbGllbnRfaWQiOiIzcTM0YzQ4bzZmdmFxYmRtc3N2dW92dTg2ayIsIm9yaWdpbl9qdGkiOiI3Yjc5OWVkMi1iYjkwLTRlMGQtOWUyYS1lZmNhOTAyMWFhNzQiLCJldmVudF9pZCI6ImFhMmZhZDc3LTYyNzEtNDI1Ny04YzE1LTNiZjg4NjZlYTJlNyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3NzkwNDAzNTIsImV4cCI6MTc3OTA0Mzk1MiwiaWF0IjoxNzc5MDQwMzUyLCJqdGkiOiI5ZWE2M2ZiZS1kYWY4LTQyYzgtYTQ5ZS1hN2U4YWUwYzgzMTMiLCJ1c2VybmFtZSI6InNhbXNvbmJhYnVqaSJ9.EbsUU5PogY_iEufA_a4xcECuRK9JDFfXy2YMZ1xq3aS2qj6UxYK-blWTTuHr6vUTWeFHuUGZ_6QcFrfmbS-x6K04lLoic_4vdC41m4zlSAdnJyRmanINMDvFQzvYc2DiNISSEKJy3aw65a338UPlzY23VucHmfZvAgvs0AjdM6ynva417IwRy7PFwDsEQ4AN5m-7JpG4EpnCAJZN0QuqpvBEYiCh1WYEtIhdu7mCf_PaoBNmXBSzLt5rmuV6Q6pBuxI5UQ_dEhMFDGfeHpOViLz3rm1woiS55w-HyhOonBScVAwgb4UUI5DV2r6WKXg4dPCbaxGZnxOl4GjpBZ4V4w',
+                         'content-type': 'application/json', 'Host': 'l6vyu26r1e.execute-api.us-east-1.amazonaws.com',
+                         'origin': 'http://localhost:5173', 'priority': 'u=3, i', 'referer': 'http://localhost:5173/',
+                         'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'cross-site',
+                         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Safari/605.1.15',
+                         'X-Amzn-Trace-Id': 'Root=1-6a0a02a1-6e36e71338925cd070cf2edd',
+                         'X-Forwarded-For': '71.162.231.230', 'X-Forwarded-Port': '443', 'X-Forwarded-Proto': 'https'},
+             'multiValueHeaders': {'accept': ['application/json, text/plain, */*'],
+                                   'accept-encoding': ['gzip, deflate, br, zstd'],
+                                   'accept-language': ['en-US,en;q=0.9'],
+                                   'Authorization': [
+                                     'Bearer eyJraWQiOiJCYk5XMlFHNnVnTUtZSGJWUGRTdysrcDVzUG1TTzVPR20wWk9DVVZNbmhVPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI4NGE4NjRkOC0yMGQxLTcwNjQtZGYxNC0yYTNhZmVjMGYxMjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV8xcGdxU3pmNDUiLCJjbGllbnRfaWQiOiIzcTM0YzQ4bzZmdmFxYmRtc3N2dW92dTg2ayIsIm9yaWdpbl9qdGkiOiI3Yjc5OWVkMi1iYjkwLTRlMGQtOWUyYS1lZmNhOTAyMWFhNzQiLCJldmVudF9pZCI6ImFhMmZhZDc3LTYyNzEtNDI1Ny04YzE1LTNiZjg4NjZlYTJlNyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3NzkwNDAzNTIsImV4cCI6MTc3OTA0Mzk1MiwiaWF0IjoxNzc5MDQwMzUyLCJqdGkiOiI5ZWE2M2ZiZS1kYWY4LTQyYzgtYTQ5ZS1hN2U4YWUwYzgzMTMiLCJ1c2VybmFtZSI6InNhbXNvbmJhYnVqaSJ9.EbsUU5PogY_iEufA_a4xcECuRK9JDFfXy2YMZ1xq3aS2qj6UxYK-blWTTuHr6vUTWeFHuUGZ_6QcFrfmbS-x6K04lLoic_4vdC41m4zlSAdnJyRmanINMDvFQzvYc2DiNISSEKJy3aw65a338UPlzY23VucHmfZvAgvs0AjdM6ynva417IwRy7PFwDsEQ4AN5m-7JpG4EpnCAJZN0QuqpvBEYiCh1WYEtIhdu7mCf_PaoBNmXBSzLt5rmuV6Q6pBuxI5UQ_dEhMFDGfeHpOViLz3rm1woiS55w-HyhOonBScVAwgb4UUI5DV2r6WKXg4dPCbaxGZnxOl4GjpBZ4V4w'],
+                                   'content-type': ['application/json'],
+                                   'Host': ['l6vyu26r1e.execute-api.us-east-1.amazonaws.com'],
+                                   'origin': ['http://localhost:5173'], 'priority': ['u=3, i'],
+                                   'referer': ['http://localhost:5173/'], 'sec-fetch-dest': ['empty'],
+                                   'sec-fetch-mode': ['cors'], 'sec-fetch-site': ['cross-site'], 'User-Agent': [
+                 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Safari/605.1.15'],
+                                   'X-Amzn-Trace-Id': ['Root=1-6a0a02a1-6e36e71338925cd070cf2edd'],
+                                   'X-Forwarded-For': ['71.162.231.230'], 'X-Forwarded-Port': ['443'],
+                                   'X-Forwarded-Proto': ['https']}, 'queryStringParameters': None,
+             'multiValueQueryStringParameters': None, 'pathParameters': {'proxy': 'haiku-foundation-path'},
+             'stageVariables': None,
+             'requestContext': {'resourceId': 'f5wivr', 'resourcePath': '/{proxy+}', 'httpMethod': 'POST',
+                                'extendedRequestId': 'dhVZOELSoAMEHtw=', 'requestTime': '17/May/2026:18:02:09 +0000',
+                                'path': '/haiku-foundation-stage/haiku-foundation-path', 'accountId': '322828741334',
+                                'protocol': 'HTTP/1.1', 'stage': 'haiku-foundation-stage', 'domainPrefix': 'l6vyu26r1e',
+                                'requestTimeEpoch': 1779040929039, 'requestId': 'a527b21f-560e-463e-8575-9805d46e275f',
+                                'identity': {'cognitoIdentityPoolId': None, 'accountId': None,
+                                             'cognitoIdentityId': None,
+                                             'caller': None, 'sourceIp': '71.162.231.230', 'principalOrgId': None,
+                                             'accessKey': None, 'cognitoAuthenticationType': None,
+                                             'cognitoAuthenticationProvider': None, 'userArn': None,
+                                             'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Safari/605.1.15',
+                                             'user': None},
+                                'domainName': 'l6vyu26r1e.execute-api.us-east-1.amazonaws.com',
+                                'deploymentId': 'zaol4j',
+                                'apiId': 'l6vyu26r1e'}, 'body': '{"requestMethod":"/home"}', 'isBase64Encoded': False}
 
+    response = lambda_handler(event, None)
+    print(response)
