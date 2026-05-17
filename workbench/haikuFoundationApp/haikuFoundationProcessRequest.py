@@ -135,10 +135,7 @@ def build_response(status, body):
 # =========================================================
 
 def lambda_handler(event, context):
-
-    print("EVENT:")
-    print(json.dumps(event, indent=2))
-
+    print("EVENT:", event)
     http_method = (
         event.get("httpMethod", "")
         .upper()
