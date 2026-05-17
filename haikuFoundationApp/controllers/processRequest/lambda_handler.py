@@ -1,0 +1,779 @@
+import json
+import random
+from re import search
+
+WELCOME_NOTE = ("Welcome to the Haiku Foundation. We’re glad you’re here. "
+                "This is a space dedicated to haiku—simple, focused poetry that captures meaning in just a few lines. "
+                "No excess, no noise—just moments, carefully observed and carefully spoken. "
+                "Whether you’re new to haiku or have been writing for years, this is a place to read, write, and share at your own pace. "
+                "Take what resonates, leave what doesn’t, and enjoy the quiet clarity this form brings."
+                " Thanks for stopping by. Make yourself at home."
+                " I had never thought of haiku, or any kind of poetry for that matter, as a social activity. "
+                "― Abigail Friedman, The Haiku Apprentice: Memoirs of Writing Poetry in Japan")
+
+ROMANTIC_LIST = [
+  "In the quiet pond\nyour reflection ripples slow\nmy heart follows you — Matsuo Bashō",
+  "Cherry blossoms fall\nlike your fingers in my hand\nspring never ends — Kobayashi Issa",
+  "Moonlight on still sea\nI think of your distant face\nwaves return to me — Yosa Buson",
+  "Evening dew lingers\non petals and on my thoughts\nyou remain longer — Masaoka Shiki",
+
+  "Love is a quiet wind\nthat bends the grass without sound\nyet changes all things — Anonymous Haiku",
+  "Two sparrows at dusk\nsharing one fading sunlight\nrefusing the night — Kobayashi Issa",
+  "Snow melts in my palm\nbut your warmth stays longer still\nwinter forgets us — Matsuo Bashō",
+  "Soft rain on window\nI trace your name in silence\nit answers back slow — Masaoka Shiki",
+  "The river curves home\nlike my thoughts always return\nto where you once stood — Yosa Buson",
+  "Your voice in evening\nlike lanterns floating upward\nI follow in dark — Anonymous",
+
+  "I wish I knew how to quit you — Brokeback Mountain — Ang Lee",
+  "You make me want to be a better man — As Good As It Gets — James L. Brooks",
+  "I'm just a girl standing in front of a boy\nasking him to love her — Notting Hill — Roger Michell",
+  "To me, you are perfect — Love Actually — Richard Curtis",
+  "You had me at hello — Jerry Maguire — Cameron Crowe",
+  "It was a million tiny little things\nthat led us to this moment — The Vow — Michael Sucsy",
+  "I want all of you, forever\nyou and me, every day — The Notebook — Nick Cassavetes",
+  "If you're a bird, I'm a bird — The Notebook — Nick Cassavetes",
+  "I'll never let go — Titanic — James Cameron",
+  "You jump, I jump — Titanic — James Cameron",
+
+  "The moon watches us\nas if it already knows\nwe belong together — Bashō (adapted)",
+  "Your name drifts like mist\nacross my morning silence\nI wake already missing — Issa (adapted)",
+  "Spring rain on rooftops\nevery drop remembers you\nfalling into me — Buson (adapted)",
+  "In the tea steam rise\nyour unseen gentle presence\nwarm as first love — Shiki (adapted)",
+  "Petals in my hair\nI walked through the world once lost\nuntil you called me — Anonymous",
+
+  "I think I’d miss you\neven if we never met — The Wedding Date — Clare Kilner",
+  "You complete me — Jerry Maguire — Cameron Crowe",
+  "We’ll always have Paris — Casablanca — Michael Curtiz",
+  "Here’s looking at you, kid — Casablanca — Michael Curtiz",
+  "Love means never having to say you're sorry — Love Story — Arthur Hiller",
+  "You are my heart\nmy life, my one and only thought — Romantic adaptation line",
+  "I will return for you — The English Patient — Anthony Minghella",
+  "Meet me in Montauk — Eternal Sunshine of the Spotless Mind — Michel Gondry",
+  "I think about you constantly — Before Sunrise — Richard Linklater",
+  "Every moment without you\nfeels slightly out of tune — Anonymous romantic line",
+
+  "Evening cicadas cry\nyet your absence is louder\nthan all of summer — Issa",
+  "A single red leaf\nfalls between us in silence\nstill I reach for you — Bashō",
+  "Distant mountain fog\nhides the road you walked away\nstill I follow you — Buson",
+  "Your shadow in rain\nwalking ahead just slightly\nI chase without breath — Shiki",
+  "Night river glimmers\nlike memories we never said\nbut always knew — Anonymous",
+
+  "You had me at hello — Jerry Maguire — Cameron Crowe",
+  "I’ve never stopped loving you — The Bridges of Madison County — Clint Eastwood",
+  "We are infinite — The Perks of Being a Wallflower — Stephen Chbosky",
+  "I will find you\neven if it takes a thousand lifetimes — Romantic adaptation line",
+  "You are my greatest adventure — Up — Pete Docter",
+  "Every version of me\nchooses every version of you — Anonymous",
+  "I fell in love\nslowly then all at once — Anonymous modern line",
+  "You feel like home\nI never had but always needed — Anonymous",
+  "Stay with me — Anonymous romantic film dialogue",
+  "I choose you\nover and over again — Anonymous",
+
+  "Snowlight on the sea\nyour name written in frozen air\nI breathe you slowly — Bashō",
+  "Moon behind paper\nyour silhouette in doorway\nI stop time for you — Buson",
+  "First cherry blossom\nand I remember your laugh\nlike spring returning — Issa",
+  "Rain in empty street\nbut your steps echo louder\nthan thunder itself — Shiki",
+  "Even silence bends\nwhen your memory passes through\nit speaks your name — Anonymous",
+
+  "We were just two strangers\nwho remembered each other too well — Anonymous",
+  "If I know what love is\nit is because of you — Adapted romantic attribution",
+  "You make my world quieter — Anonymous",
+  "Every time I see you\nthe world resets — Anonymous",
+  "Love is too weak a word — Love Actually — Richard Curtis",
+  "I would rather share one lifetime with you — The Lord of the Rings — Peter Jackson",
+  "You are the closest I'll ever come to magic — Anonymous",
+  "I still choose you — Anonymous",
+  "You are the reason\nmy silence is no longer empty — Anonymous",
+  "Stay a little longer\nmy heart hasn't finished learning you — Anonymous"
+]
+
+MANDATORY_LIST = [
+  "We shall never understand one another until we reduce the language to seven words. ― Kahlil Gibran",
+  "I had never thought of haiku, or any kind of poetry for that matter, as a social activity. ― Abigail Friedman, The Haiku Apprentice: Memoirs of Writing Poetry in Japan",
+  "The haiku that reveals seventy to eighty percent of its subject is good. Those that reveal fifty to sixty percent, we never tire of. ― Matsuo Basho",
+  "When composing a verse let there not be a hair’s breath separating your mind from what you write; composition of a poem must be done in an instant, like a woodcutter felling a huge tree or a swordsman leaping at a dangerous enemy. ― Matsuo Bashō",
+  "Haiku sounds like I’m saying hi to someone named Ku. Hi, Ku. Hello. ― Ellen DeGeneres, Seriously… I’m Kidding",
+  "I guess haiku is an inspiration for me. Everyday, simple moments. ― Misha Collins",
+  "These are some of the characteristics of the state of mind which the creation and appreciation of haiku demand: Selflessness, Loneliness, Grateful Acceptance, Wordlessness, Non-intellectuality, Contradictoriness, Humor, Freedom, Non-morality, Simplicity, Materiality, Love, and Courage. ― R.H. Blyth",
+  "Haiku are meant to evoke an emotional response from the reader… They act as sensory catalysts… literary etchings of lucid visions transposed into the minds of its readers… ― Bukusai Ashagawa",
+  "Haiku is not a shriek, a howl, a sigh, or a yawn; rather, it is the deep breath of life. ― Santōka Taneda, Mountain Tasting: Haiku and Journals of Santoka Taneda",
+  "Real haiku is the soul of poetry. Anything that is not actually present in one’s heart is not haiku. The moon glows, flowers bloom, insects cry, water flows… ― Santōka Taneda, Mountain Tasting: Haiku and Journals of Santoka Taneda",
+  "I would hate to see seventeen people with monosyllabic names like Mike or Ann die, but if they did, and you wrote down all their names in groups of 5-7-5, you’d have one tragic haiku. ― Jarod Kintz, This Book is Not FOR SALE",
+  "Someday I want to write a sixteen-syllable Haiku about the death and disappearance of a monosyllabic word. ― Jarod Kintz, This Book is Not FOR SALE",
+  "The love of nature is religion, and that religion is poetry; these three things are one thing. This is the unspoken creed of haiku poets. ― R.H. Blyth",
+  "Besides, if you want to write something perfect, write a haiku. Anything longer is bound to have a few passages that don’t work as well as they might. ― Philip Pullman",
+  "You were almost like a haiku: said so little, but meant so much. ― Abraham Algahanem",
+  "Reading haiku is as much an art as writing it. The reader needs to pause and listen to the silences… ― Harley King, Mother, Don’t Lock Me In That Closet!",
+  "Reading haiku is like viewing a photograph or a painting. A haiku is a moment of time, isolated, and held up for viewing. ― Harley King, Mother, Don’t Lock Me In That Closet!",
+  "Haiku does not express emotion from the inside out… it builds the emotional thrust from the outside in… ― Harley King, Mother, Don’t Lock Me In That Closet!",
+  "If death is like a sonnet then life would be a haiku… brief syllables through which we convey the truth of the universe in a single moment. ― R.M. Engelhardt",
+  "I recently got into Haiku in Japan and I just think it’s fantastic… you’re left with great precision. ― John Lennon",
+  "Haiku is a snapshot in time. no veils, no mystery—it is exactly as it reads. ― Mestre",
+  "This is for all the people I’ll never meet… This is for who I was, who I am, who I might be. This is for you. ― Chuck Pulaski",
+  "I was satisfied with haiku until I met you… but now I want a Russian novel… ― Dean Young",
+  "Meaning lies as much in the mind of the reader as in the Haiku. ― Douglas R. Hofstadter",
+  "The sun shines, snow falls… but it is only very seldom that we attend to such things… this is the Way of Haiku. ― R.H. Blyth",
+  "So I don’t think I’ll make Poet Laureate… I can always write haiku on Twitter. ― Rosy Cole",
+  "Haiku is a particularly Zen form of poetry; the author of haiku should be absent, and only the haiku present. ― Anne Bancroft",
+  "The haiku reproduces the designating gesture of the child pointing at whatever it is… merely saying: that! ― Roland Barthes",
+  "Haiku is a way of culling things from the stream of things that rush past the senses. ― Michael J. Rosen",
+  "Yoko [Ono] was showing me some of these Haiku… instead of a long flowery poem the Haiku would say ‘Yellow flower in white bowl on wooden table’. ― John Lennon",
+  "He who creates three to five haiku poems during a lifetime is a haiku poet. He who attains to complete ten is a master. ― Matsuo Basho",
+  "A Haiku is just like a normal American poem except that it doesn’t rhyme and it’s totally stupid. ― Trey and Matt Stone Parker"
+]
+
+EXPLORE_LIST_1 = [
+  "May the Force be with you — Star Wars — George Lucas",
+  "I'm gonna make him an offer he can't refuse — The Godfather — Francis Ford Coppola",
+  "Here's looking at you, kid — Casablanca — Michael Curtiz",
+  "Why so serious? — The Dark Knight — Christopher Nolan",
+  "I'll be back — The Terminator — James Cameron",
+  "Life is like a box of chocolates — Forrest Gump — Robert Zemeckis",
+  "You talking to me? — Taxi Driver — Martin Scorsese",
+  "I love the smell of napalm in the morning — Apocalypse Now — Francis Ford Coppola",
+  "Houston, we have a problem — Apollo 13 — Ron Howard",
+  "To infinity and beyond — Toy Story — Pixar",
+  "Just keep swimming — Finding Nemo — Pixar",
+  "I'm the king of the world — Titanic — James Cameron",
+  "Nobody puts Baby in a corner — Dirty Dancing — Emile Ardolino",
+  "You can't handle the truth — A Few Good Men — Rob Reiner",
+  "I see dead people — The Sixth Sense — M. Night Shyamalan",
+  "It's alive — Frankenstein — James Whale",
+  "I feel the need for speed — Top Gun — Tony Scott",
+  "Carpe diem. Seize the day — Dead Poets Society — Peter Weir",
+  "Say hello to my little friend — Scarface — Brian De Palma",
+  "Bond. James Bond — Dr. No — Terence Young",
+  "Elementary, my dear Watson — Sherlock Holmes (adaptations) — Various",
+  "I volunteer as tribute — The Hunger Games — Gary Ross",
+  "This is Sparta — 300 — Zack Snyder",
+  "E.T. phone home — E.T. — Steven Spielberg",
+  "I'm just one stomach flu away from my goal weight — The Devil Wears Prada — David Frankel",
+  "With great power comes great responsibility — Spider-Man — Sam Raimi",
+  "You had me at hello — Jerry Maguire — Cameron Crowe",
+  "After all, tomorrow is another day — Gone with the Wind — Victor Fleming",
+  "I'm not bad, I'm just drawn that way — Who Framed Roger Rabbit — Robert Zemeckis",
+  "Why do we fall? So we can learn to pick ourselves up — Batman Begins — Christopher Nolan",
+  "You can't sit with us — Mean Girls — Mark Waters",
+  "On Wednesdays we wear pink — Mean Girls — Mark Waters",
+  "I am serious, and don't call me Shirley — Airplane! — Jim Abrahams",
+  "We're gonna need a bigger boat — Jaws — Steven Spielberg",
+  "Keep your friends close but your enemies closer — The Godfather Part II — Francis Ford Coppola",
+  "Say what again! I dare you — Pulp Fiction — Quentin Tarantino",
+  "I'm having an old friend for dinner — The Silence of the Lambs — Jonathan Demme",
+  "Do or do not, there is no try — Star Wars — George Lucas",
+  "Why can't we all just get along — Rodney King commentary — Various media",
+  "I’m Batman — Batman — Tim Burton"
+]
+
+EXPLORE_LIST_2 = [
+  "You had me at hello — Jerry Maguire — Cameron Crowe",
+  "Houston, we have a problem — Apollo 13 — Ron Howard",
+  "I'm too old for this — Lethal Weapon — Richard Donner",
+  "Welcome to the party, pal — Die Hard — John McTiernan",
+  "Yippee-ki-yay — Die Hard — John McTiernan",
+  "I'll have what she's having — When Harry Met Sally — Rob Reiner",
+  "There’s no place like home — The Wizard of Oz — Victor Fleming",
+  "I feel the need—the need for speed — Top Gun — Tony Scott",
+  "Hasta la vista, baby — Terminator 2 — James Cameron",
+  "Get busy living or get busy dying — The Shawshank Redemption — Frank Darabont",
+  "Hope is a good thing — The Shawshank Redemption — Frank Darabont",
+  "They may take our lives but they'll never take our freedom — Braveheart — Mel Gibson",
+  "I'm just a girl standing in front of a boy — Notting Hill — Roger Michell",
+  "Life finds a way — Jurassic Park — Steven Spielberg",
+  "That’ll do, pig. That’ll do — Babe — Chris Noonan",
+  "Why so serious? — The Dark Knight — Christopher Nolan",
+  "You’re gonna need a bigger quote — Internet humor adaptation",
+  "Keep the change, ya filthy animal — Home Alone — Chris Columbus",
+  "Merry Christmas, ya filthy animal — Home Alone 2 — Chris Columbus",
+  "I drink your milkshake — There Will Be Blood — Paul Thomas Anderson",
+  "I am the danger — Breaking Bad — Vince Gilligan",
+  "Say my name — Breaking Bad — Vince Gilligan",
+  "I am the one who knocks — Breaking Bad — Vince Gilligan",
+  "Winter is coming — Game of Thrones — David Benioff & D. B. Weiss",
+  "Valar morghulis — Game of Thrones — George R. R. Martin",
+  "Valar dohaeris — Game of Thrones — George R. R. Martin",
+  "Chaos is a ladder — Game of Thrones — George R. R. Martin",
+  "The night is dark and full of terrors — Game of Thrones — George R. R. Martin",
+  "Not all those who wander are lost — The Lord of the Rings — J.R.R. Tolkien",
+  "One does not simply walk into Mordor — The Lord of the Rings — Peter Jackson",
+  "My precious — The Lord of the Rings — J.R.R. Tolkien",
+  "You shall not pass — The Lord of the Rings — J.R.R. Tolkien",
+  "Even the smallest person can change the future — The Lord of the Rings — Peter Jackson",
+  "I see you — Avatar — James Cameron",
+  "To me, my X-Men — X-Men — Bryan Singer",
+  "We are Groot — Guardians of the Galaxy — James Gunn",
+  "I am Iron Man — Iron Man — Jon Favreau",
+  "Part of the journey is the end — Avengers: Endgame — Anthony & Joe Russo",
+  "I love you 3000 — Avengers: Endgame — Anthony & Joe Russo",
+  "Wakanda forever — Black Panther — Ryan Coogler"
+]
+
+EXPLORE_LIST_3 = [
+  "I’m gonna be somebody someday — A Star Is Born — Bradley Cooper",
+  "You talking to me or the audience — Taxi Driver — Martin Scorsese",
+  "All right, Mr. DeMille, I'm ready for my close-up — Sunset Boulevard — Billy Wilder",
+  "Rosebud — Citizen Kane — Orson Welles",
+  "Fasten your seatbelts, it's going to be a bumpy night — All About Eve — Joseph L. Mankiewicz",
+  "Frankly, my dear, I don't give a damn — Gone with the Wind — Victor Fleming",
+  "I'm walking here! — Midnight Cowboy — John Schlesinger",
+  "Here's Johnny! — The Shining — Stanley Kubrick",
+  "Heeeeere's Johnny — The Shining — Stanley Kubrick",
+  "Here's looking at you — Casablanca — Michael Curtiz",
+  "You had me at hello — Jerry Maguire — Cameron Crowe",
+  "I want to be alone — Grand Hotel — Edmund Goulding",
+  "I coulda been a contender — On the Waterfront — Elia Kazan",
+  "Love means never having to say you're sorry — Love Story — Arthur Hiller",
+  "Play it again, Sam — Casablanca (misquote) — Michael Curtiz",
+  "I’m gonna make him an offer — The Godfather — Francis Ford Coppola",
+  "The stuff that dreams are made of — The Maltese Falcon — John Huston",
+  "Elementary — Sherlock Holmes — Arthur Conan Doyle adaptations",
+  "You’re tearing me apart — Rebel Without a Cause — Nicholas Ray",
+  "I am your father — Star Wars — George Lucas",
+  "No, I am your father — The Empire Strikes Back — Irvin Kershner",
+  "Help me Obi-Wan Kenobi — Star Wars — George Lucas",
+  "Never tell me the odds — Star Wars — George Lucas",
+  "It’s a trap — Star Wars — Richard Marquand",
+  "Live long and prosper — Star Trek — Gene Roddenberry",
+  "Beam me up, Scotty — Star Trek — Gene Roddenberry",
+  "Resistance is futile — Star Trek — Gene Roddenberry",
+  "I’ll be back — The Terminator — James Cameron",
+  "Come with me if you want to live — Terminator 2 — James Cameron",
+  "There is no spoon — The Matrix — Wachowskis",
+  "Welcome to the real world — The Matrix — Wachowskis",
+  "Red pill or blue pill — The Matrix — Wachowskis",
+  "I know kung fu — The Matrix — Wachowskis",
+  "What is real — The Matrix — Wachowskis",
+  "Shut up and take my money — Futurama — Matt Groening",
+  "Bite my shiny metal ass — Futurama — Matt Groening",
+  "I’ve made a huge mistake — Arrested Development — Mitchell Hurwitz",
+  "No touching — Arrested Development — Mitchell Hurwitz",
+  "There’s always money in the banana stand — Arrested Development — Mitchell Hurwitz",
+  "I regret nothing — general comedy phrase — Anonymous"
+]
+
+EXPLORE_LIST_4 = [
+  "I'm not superstitious, but I am a little stitious — The Office — Greg Daniels",
+  "That's what she said — The Office — Greg Daniels",
+  "Bears. Beets. Battlestar Galactica — The Office — Greg Daniels",
+  "I declare bankruptcy — The Office — Greg Daniels",
+  "Identity theft is not a joke, Jim — The Office — Greg Daniels",
+  "Treat yo self — Parks and Recreation — Michael Schur",
+  "It's gonna be legendary — How I Met Your Mother — Carter Bays & Craig Thomas",
+  "Challenge accepted — How I Met Your Mother — Carter Bays & Craig Thomas",
+  "Suit up — How I Met Your Mother — Carter Bays & Craig Thomas",
+  "Legendary — How I Met Your Mother — Carter Bays & Craig Thomas",
+  "I am the one who knocks — Breaking Bad — Vince Gilligan",
+  "Yeah science! — Breaking Bad — Vince Gilligan",
+  "Stay out of my territory — Breaking Bad — Vince Gilligan",
+  "Winter is coming — Game of Thrones — George R. R. Martin",
+  "The man who passes the sentence should swing the sword — Game of Thrones — George R. R. Martin",
+  "Dracarys — Game of Thrones — George R. R. Martin",
+  "I drink and I know things — Game of Thrones — George R. R. Martin",
+  "Not today — Game of Thrones — George R. R. Martin",
+  "You know nothing Jon Snow — Game of Thrones — George R. R. Martin",
+  "I'm the king of the north — Game of Thrones — George R. R. Martin",
+  "I am inevitable — Avengers: Endgame — Russo Brothers",
+  "And I am Iron Man — Avengers: Endgame — Jon Favreau",
+  "Avengers assemble — Avengers: Endgame — Marvel Studios",
+  "We have a Hulk — Avengers — Joss Whedon",
+  "I can do this all day — Captain America — Marvel Studios",
+  "I am Loki of Asgard — Thor — Kenneth Branagh",
+  "We are Groot — Guardians of the Galaxy — James Gunn",
+  "I am Iron Man — Iron Man — Jon Favreau",
+  "With great power comes great responsibility — Spider-Man — Sam Raimi",
+  "My spidey senses are tingling — Spider-Man — Marvel Comics adaptations",
+  "I’m Batman — Batman — Tim Burton",
+  "Why so serious — The Dark Knight — Christopher Nolan",
+  "You either die a hero or live long enough to see yourself become the villain — The Dark Knight — Christopher Nolan",
+  "I'm vengeance — The Batman — Matt Reeves",
+  "It's not who I am underneath — Batman Begins — Christopher Nolan",
+  "I am vengeance — The Batman — Matt Reeves",
+  "Some men just want to watch the world burn — The Dark Knight — Christopher Nolan",
+  "The night is darkest just before the dawn — The Dark Knight — Christopher Nolan",
+  "You complete me — Jerry Maguire — Cameron Crowe"
+]
+
+EXPLORE_LIST_5 = [
+  "I’ll have what she’s having — When Harry Met Sally — Rob Reiner",
+  "You can’t sit with us — Mean Girls — Mark Waters",
+  "On Wednesdays we wear pink — Mean Girls — Mark Waters",
+  "Stop trying to make fetch happen — Mean Girls — Mark Waters",
+  "That is so fetch — Mean Girls — Mark Waters",
+  "I'm a mouse, duh — Mean Girls — Mark Waters",
+  "It’s not that serious — general comedy line — Anonymous",
+  "I’m not arguing, I’m just explaining why I’m right — Anonymous",
+  "I’m not lazy, I’m energy efficient — Anonymous internet humor",
+  "I woke up like this — Beyoncé (song lyric adaptation context)",
+  "Who run the world — Beyoncé — Beyoncé Knowles",
+  "We don't talk about Bruno — Encanto — Lin-Manuel Miranda",
+  "Let it go — Frozen — Kristen Anderson-Lopez & Robert Lopez",
+  "Do you want to build a snowman — Frozen — Disney",
+  "Hakuna Matata — The Lion King — Disney",
+  "Circle of life — The Lion King — Elton John & Tim Rice",
+  "Be our guest — Beauty and the Beast — Disney",
+  "A whole new world — Aladdin — Disney",
+  "Part of your world — The Little Mermaid — Disney",
+  "Just one more thing — Columbo — Richard Levinson & William Link",
+  "Elementary, my dear Watson — Sherlock Holmes — Arthur Conan Doyle adaptations",
+  "I’m gonna need a bigger quote — Jaws humor adaptation",
+  "May the memes be with you — Internet culture adaptation",
+  "This is fine — webcomic meme — KC Green",
+  "I can has cheezburger — meme culture — early internet",
+  "Nope — general reaction meme — Internet culture",
+  "Big mood — internet slang — Anonymous",
+  "It do be like that sometimes — internet slang — Anonymous",
+  "We live in a society — meme culture — Anonymous",
+  "I understood that reference — Captain America — Marvel Studios",
+  "Perfectly balanced — Thanos — Marvel Studios",
+  "I am Loki of Asgard — Thor — Marvel Studios",
+  "I can’t do this alone — various hero trope dialogue — Anonymous",
+  "What is grief if not love persevering — WandaVision — Jac Schaeffer",
+  "I love you 3000 — Avengers: Endgame — Russo Brothers",
+  "It’s over 9000 — Dragon Ball Z — Akira Toriyama",
+  "Kamehameha — Dragon Ball Z — Akira Toriyama",
+  "Believe it! — Naruto — Masashi Kishimoto",
+  "Dattebayo — Naruto — Masashi Kishimoto",
+  "I’m gonna be Hokage — Naruto — Masashi Kishimoto"
+]
+
+TOPICS_LIST = [
+  "Spring",
+  "Summer",
+  "Autumn",
+  "Winter",
+  "Cherry Blossoms",
+  "Falling Leaves",
+  "Snow",
+  "Rain",
+  "Storms",
+  "Wind",
+  "Moonlight",
+  "Sunrise",
+  "Sunset",
+  "Rivers",
+  "Oceans",
+  "Mountains",
+  "Forests",
+  "Flowers",
+  "Birds",
+  "Insects",
+  "Love",
+  "Heartbreak",
+  "Longing",
+  "Loneliness",
+  "Joy",
+  "Sorrow",
+  "Nostalgia",
+  "Hope",
+  "Peace",
+  "Anger",
+  "Fear",
+  "Courage",
+  "Friendship",
+  "Loss",
+  "Memory",
+  "Gratitude",
+  "Time",
+  "Silence",
+  "Stillness",
+  "Meditation",
+  "Enlightenment",
+  "Identity",
+  "Dreams",
+  "Reality",
+  "Death",
+  "Rebirth",
+  "Fate",
+  "Meaning of Life",
+  "City Life",
+  "Technology",
+  "Social Media",
+  "Isolation",
+  "Work Life",
+  "Commute",
+  "Night City Lights",
+  "Urban Loneliness",
+  "Hollywood",
+  "Movies",
+  "Music",
+  "Celebrities",
+  "Fame",
+  "Comedy",
+  "Drama",
+  "Romance",
+  "Funny",
+  "Irony",
+  "Absurdity",
+  "Cats",
+  "Dogs",
+  "Wildlife",
+  "Butterflies",
+  "Fish",
+  "Horses",
+  "Stars",
+  "Universe",
+  "Planets",
+  "Space",
+  "Night Sky",
+  "Black Holes",
+  "Zen",
+  "Karma",
+  "Inner Peace",
+  "Bullying",
+  "Conflict",
+  "War",
+  "Anxiety",
+  "Addiction"
+]
+
+
+class HomeController:
+
+    def get(self, event):
+        return {
+            "module": "HOME",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        output = WELCOME_NOTE
+        return output
+
+
+class ExploreController:
+
+    def get(self, event):
+        return {
+            "module": "EXPLORE",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        TOTAL_LIST = (
+                  EXPLORE_LIST_1
+                + EXPLORE_LIST_2
+                + EXPLORE_LIST_3
+                + EXPLORE_LIST_4
+                + EXPLORE_LIST_5
+        )
+        first = random.choice(MANDATORY_LIST)
+        second = random.choice(ROMANTIC_LIST)
+        third = random.sample(TOTAL_LIST, 1)
+        selected = third + [first] + [second]
+        output = "\n\n".join(f"{haiku}" for haiku in selected)
+        return output
+
+
+class TopicController:
+
+    def get(self, event):
+        output = TOPICS_LIST
+        return ", ".join(f"{haiku}" for haiku in output)
+
+    def post(self, event):
+        if event.get('body').get('search'):
+            search = event['body']['search']
+            return ", ".join(f"{haiku}" for haiku in search)
+        output = random.sample(TOPICS_LIST, 18)
+        return ", ".join(f"{haiku}" for haiku in output)
+
+
+class SavedController:
+    def get(self, event):
+        return {
+            "module": "SAVED",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "SAVED",
+            "action": "POST"
+        }
+
+
+class FeaturedController:
+    def get(self, event):
+        return {
+            "module": "FEATURED",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "FEATURED",
+            "action": "POST"
+        }
+
+
+class WriteController:
+    def get(self, event):
+        return {
+            "module": "WRITE",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "WRITE",
+            "action": "POST"
+        }
+
+
+class MessagesController:
+
+    def get(self, event):
+        return {
+            "module": "MESSAGES",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "MESSAGES",
+            "action": "POST"
+        }
+
+
+class LogoutController:
+
+    def get(self, event):
+        return {
+            "module": "LOGOUT",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "LOGOUT",
+            "action": "POST"
+        }
+
+
+class ProfileController:
+
+    def get(self, event):
+        return {
+            "module": "PROFILE",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "PROFILE",
+            "action": "POST"
+        }
+
+
+class NotificationsController:
+
+    def get(self, event):
+        return {
+            "module": "NOTIFICATIONS",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "NOTIFICATIONS",
+            "action": "POST"
+        }
+
+
+class SettingsController:
+
+    def get(self, event):
+        return {
+            "module": "SETTINGS",
+            "action": "GET"
+        }
+
+    def post(self, event):
+        return {
+            "module": "SETTINGS",
+            "action": "POST"
+        }
+
+
+class NotFoundController:
+
+    def handle(self, event):
+        return {
+            "error": "Route not found"
+        }
+
+
+# =========================================================
+# Controller Registry
+# =========================================================
+
+CONTROLLERS = {
+    "/home": HomeController(),
+    "/explore": ExploreController(),
+    "/topics": TopicController(),
+    "/saved": SavedController(),
+    "/featured": FeaturedController(),
+    "/write": WriteController(),
+    "/profile": ProfileController(),
+    "/messages": MessagesController(),
+    "/settings": SettingsController(),
+    "/notifications": NotificationsController(),
+    "/logout": LogoutController(),
+}
+
+FALLBACK = NotFoundController()
+
+
+# =========================================================
+# Helpers
+# =========================================================
+
+def parse_body(event):
+
+    body = event.get("body")
+
+    if not body:
+        return {}
+
+    try:
+        return json.loads(body)
+
+    except Exception as e:
+        print("JSON parse error:", e)
+        return {}
+
+
+def build_response(status, body):
+
+    return {
+        "statusCode": status,
+
+        "headers": {
+
+            # ---------------- CORS ----------------
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT,PATCH,DELETE",
+
+            # ---------------- CONTENT ----------------
+            "Content-Type": "application/json"
+        },
+
+        "body": json.dumps(body)
+    }
+
+
+def lambda_handler(event, context):
+    print("EVENT:", event)
+    http_method = (
+        event.get("httpMethod", "")
+        .upper()
+    )
+
+    # =====================================================
+    # HANDLE CORS PREFLIGHT
+    # =====================================================
+
+    if http_method == "OPTIONS":
+
+        return build_response(
+            200,
+            {
+                "message": "CORS preflight success"
+            }
+        )
+
+    # =====================================================
+    # PARSE BODY
+    # =====================================================
+
+    body = parse_body(event)
+
+
+    # =====================================================
+    # ROUTE
+    # =====================================================
+
+    request_method = body.get("requestMethod")
+
+    if not request_method:
+
+        return build_response(
+            400,
+            {
+                "error": "Missing requestMethod"
+            }
+        )
+
+    controller = CONTROLLERS.get(
+        request_method,
+        FALLBACK
+    )
+
+    # =====================================================
+    # METHOD RESOLUTION
+    # =====================================================
+
+    handler = getattr(
+        controller,
+        http_method.lower(),
+        None
+    )
+
+    if not handler:
+
+        return build_response(
+            405,
+            {
+                "error": f"{http_method} not supported for {request_method}"
+            }
+        )
+
+    # =====================================================
+    # EXECUTE CONTROLLER
+    # =====================================================
+
+    controller_event = {
+
+        "httpMethod": http_method,
+
+        "route": request_method,
+
+        "body": body,
+
+        "headers": event.get("headers", {}),
+
+        "user": (
+            event
+            .get("requestContext", {})
+            .get("authorizer")
+        )
+    }
+
+    result = handler(controller_event)
+
+    # =====================================================
+    # SUCCESS RESPONSE
+    # =====================================================
+
+    return build_response(
+        200,
+        result
+    )
+
+
+# =========================================================
+# Local Test
+# =========================================================
+
+
+if __name__ == "__main__":
+    # For local testing
+    test_event = {
+        "httpMethod": "POST",
+        "body": json.dumps({"requestMethod": "/topics"})
+    }
+    response = lambda_handler(test_event, None)
+    print(response)
+
+
