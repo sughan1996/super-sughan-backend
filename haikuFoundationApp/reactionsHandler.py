@@ -1,0 +1,4 @@
+"""
+PK = "CONTENT_ID"
+SK = ["TYPE#LIKE", "TYPE#DISLIKE"]
+"""

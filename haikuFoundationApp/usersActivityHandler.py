@@ -1,0 +1,5 @@
+"""
+PK = "USER_ID"
+SK = ["TYPE#CREATE", "TYPE#DELETE", "TYPE#UPDATE", "TYPE#REACT", "TYPE#SAVED"]
+attributes = ["CREATED_AT", "UPDATED_AT", "CONTENT_ID"]
+"""

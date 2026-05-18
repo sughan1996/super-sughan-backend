@@ -2,7 +2,6 @@ import json
 import random
 import ssl
 from urllib.request import urlopen
-
 import certifi
 from jose import jwt
 from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
@@ -10,8 +9,6 @@ from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
 AWS_REGION = "us-east-1"
 COGNITO_USER_POOL_ID = "us-east-1_1pgqSzf45"
 COGNITO_CLIENT_ID = "3q34c48o6fvaqbdmssvuovu86k"
-
-# Cache JWKS per warm container to avoid repeated fetches
 JWKS_CACHE = {"jwks": None}
 
 WELCOME_NOTE = ("Welcome to the Haiku Foundation. We’re glad you’re here. "
@@ -448,13 +445,10 @@ HAIKU_TYPES = {
   "Tanka": "Tanka is a form of haiku that consists of five lines with a syllable pattern of 5-7-5-7-7. It is an extension of traditional haiku and allows for a more expansive expression of thoughts and emotions. Tanka often explores themes of love, nature, and human experience, and it provides a platform for poets to delve deeper into their subject matter while still maintaining the concise and evocative nature of haiku."
 }
 
-
 TRENDING_LIST = ["Romantic", "Funny",
                  "Irony", "Absurdity",
                  "Celebrity", "Fame",
                  "Comedy", "Drama", "Romance"]
-
-
 
 class HomeController:
 
@@ -467,7 +461,6 @@ class HomeController:
     def post(self, event):
         output = WELCOME_NOTE
         return output
-
 
 class ExploreController:
 
@@ -492,7 +485,6 @@ class ExploreController:
         output = "\n\n".join(f"{haiku}" for haiku in selected)
         return output
 
-
 class TopicController:
 
     def get(self, event):
@@ -505,7 +497,6 @@ class TopicController:
             return ", ".join(f"{haiku}" for haiku in search)
         output = random.sample(TOPICS_LIST, 18)
         return ", ".join(f"{haiku}" for haiku in output)
-
 
 class SavedController:
     def get(self, event):
@@ -520,7 +511,6 @@ class SavedController:
             "action": "POST"
         }
 
-
 class FeaturedController:
     def get(self, event):
         return {
@@ -534,7 +524,6 @@ class FeaturedController:
             "action": "POST"
         }
 
-
 class WriteController:
     def get(self, event):
         return {
@@ -547,7 +536,6 @@ class WriteController:
             "module": "WRITE",
             "action": "POST"
         }
-
 
 class MessagesController:
 
@@ -563,7 +551,6 @@ class MessagesController:
             "action": "POST"
         }
 
-
 class LogoutController:
 
     def get(self, event):
@@ -577,7 +564,6 @@ class LogoutController:
             "module": "LOGOUT",
             "action": "POST"
         }
-
 
 class ProfileController:
 
@@ -593,7 +579,6 @@ class ProfileController:
             "action": "POST"
         }
 
-
 class NotificationsController:
 
     def get(self, event):
@@ -607,7 +592,6 @@ class NotificationsController:
             "module": "NOTIFICATIONS",
             "action": "POST"
         }
-
 
 class SettingsController:
 
@@ -623,7 +607,6 @@ class SettingsController:
             "action": "POST"
         }
 
-
 class TrendingController:
 
   def get(self, event):
@@ -638,7 +621,6 @@ class TrendingController:
       "action": "POST"
     }
 
-
 class HaikuController:
 
   def get(self, event):
@@ -652,7 +634,6 @@ class HaikuController:
       "module": "HAIKU",
       "action": "POST"
     }
-
 
 class HaikuTypesController:
 
@@ -672,11 +653,6 @@ class NotFoundController:
             "error": "Route not found"
         }
 
-
-# =========================================================
-# Controller Registry
-# =========================================================
-
 CONTROLLERS = {
     "/home": HomeController(),
     "/explore": ExploreController(),
@@ -695,11 +671,6 @@ CONTROLLERS = {
 
 FALLBACK = NotFoundController()
 
-
-# =========================================================
-# Helpers
-# =========================================================
-
 def parse_body(event):
 
     body = event.get("body")
@@ -713,7 +684,6 @@ def parse_body(event):
     except Exception as e:
         print("JSON parse error:", e)
         return {}
-
 
 def build_response(status, body):
 
@@ -734,7 +704,6 @@ def build_response(status, body):
         "body": json.dumps(body)
     }
 
-
 def get_jwks(jwks_url: str) -> dict:
   if JWKS_CACHE["jwks"] is None:
     # Use certifi CA bundle to avoid local trust store issues
@@ -742,7 +711,6 @@ def get_jwks(jwks_url: str) -> dict:
     with urlopen(jwks_url, context=context) as resp:
       JWKS_CACHE["jwks"] = json.load(resp)
   return JWKS_CACHE["jwks"]
-
 
 def validate_jwt_token(auth_header: str) -> dict:
   """
@@ -800,39 +768,26 @@ def validate_jwt_token(auth_header: str) -> dict:
   except (JWTClaimsError, JWTError) as e:
     raise Exception(f'Invalid token: {str(e)}')
 
-
-# =========================================================
-# Lambda Handler
-# =========================================================
-
 def lambda_handler(event, context):
     print("EVENT:", event)
     http_method = (
         event.get("httpMethod", "")
         .upper()
     )
-
     if http_method == "OPTIONS":
       return build_response(200, {"message": "CORS preflight success"})
-
     body = parse_body(event)
-
     request_method = body.get("requestMethod")
     if not request_method:
       return build_response(400, {"error": "Missing requestMethod"})
-
     controller = CONTROLLERS.get(request_method, FALLBACK)
-
     handler = getattr(
         controller,
         http_method.lower(),
         None
     )
-
     if not handler:
       return build_response(405, {"error": f"{http_method} not supported for {request_method}"})
-
-    # Enforce JWT on GET and POST
     user_claims = None
     if http_method in ("GET", "POST"):
       headers = event.get('headers', {}) or {}
@@ -841,7 +796,6 @@ def lambda_handler(event, context):
         user_claims = validate_jwt_token(auth_header)
       except Exception as e:
         return build_response(401, {"error": str(e)})
-
     controller_event = {
         "httpMethod": http_method,
         "route": request_method,
@@ -853,27 +807,17 @@ def lambda_handler(event, context):
             .get("authorizer")
         )
     }
-
     result = handler(controller_event)
-
     return build_response(200, result)
-
-
-# =========================================================
-# Local Test
-# =========================================================
 
 
 if __name__ == "__main__":
     # For local testing
-    event = {
+    event_0 = {
       "httpMethod": "OPTIONS",
         "body": json.dumps({"requestMethod": "/topics"})
     }
-    response = lambda_handler(event, None)
-    print(response)
-
-    event = {'resource': '/{proxy+}', 'path': '/haiku-foundation-path', 'httpMethod': 'POST',
+    event_1 = {'resource': '/{proxy+}', 'path': '/haiku-foundation-path', 'httpMethod': 'POST',
              'headers': {'accept': 'application/json, text/plain, */*', 'accept-encoding': 'gzip, deflate, br, zstd',
                          'accept-language': 'en-US,en;q=0.9',
                          'Authorization': 'Bearer eyJraWQiOiJCYk5XMlFHNnVnTUtZSGJWUGRTdysrcDVzUG1TTzVPR20wWk9DVVZNbmhVPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI4NGE4NjRkOC0yMGQxLTcwNjQtZGYxNC0yYTNhZmVjMGYxMjUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV8xcGdxU3pmNDUiLCJjbGllbnRfaWQiOiIzcTM0YzQ4bzZmdmFxYmRtc3N2dW92dTg2ayIsIm9yaWdpbl9qdGkiOiI3MmJhZjg1YS1hMDhkLTQzOTgtYmZkMi00NDhmOTAzMTIwMmQiLCJldmVudF9pZCI6IjY5OGJiZjZmLTFmNWUtNDc0Yy1iNzQzLWE0YTljYjcwMDc4ZSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3NzkwNDk1MTgsImV4cCI6MTc3OTA1MzExOCwiaWF0IjoxNzc5MDQ5NTE4LCJqdGkiOiJkZDUxMThjNy0zMjFiLTRhNjUtODIzYy1lZTM3YWYzMjkxOWUiLCJ1c2VybmFtZSI6InNhbXNvbmJhYnVqaSJ9.MDVbCb4kXYi8y0ySSRM94KeJV4m0pzLa8CUaQ78Kpyo0tpL87kD4rxfTGy6wNTzk5xdam7-aiQUbM317gphUsAIw4zpQbH0rXD5sY4w4-67vBpDWlSw6eEa-KkBKKZVZT7l6womPhSirSlHZO8pxwLjcZTFCUkdFM9UWBKjjqHa-dSi616lp0mBWplbKl9UH2OCke0UeE4lKPJr8lXFaqBXnQ_R5WeqW5y_buTWaPWUFFqzOOMwqcJg0SKiJRW8zA5ADvi-DxEqiCaz3EW8GqujYIv4xKpLDC_8WKIVjt6008HL_s21nl8XLB4uSqXLKsFbMUCPj6hS3xY3NKP8qmQ',
@@ -914,6 +858,5 @@ if __name__ == "__main__":
                                 'domainName': 'l6vyu26r1e.execute-api.us-east-1.amazonaws.com',
                                 'deploymentId': 'zaol4j',
                                 'apiId': 'l6vyu26r1e'}, 'body': '{"requestMethod":"/home"}', 'isBase64Encoded': False}
-
-    response = lambda_handler(event, None)
+    response = lambda_handler(event_1 , None)
     print(response)
