@@ -1,4 +1,4 @@
-from dbmodels.poemsHandler import get_poem_values, get_random_poem
+from haikuFoundationApp.dbmodels.poemsHandler import get_random_poem
 from haikuFoundationApp.jobs.usersHandler import get_user_id_values
 
 
