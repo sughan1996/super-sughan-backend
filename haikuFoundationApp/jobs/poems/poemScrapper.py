@@ -139,6 +139,7 @@ class PoetryDBClient:
 
 if __name__ == "__main__":
     client = PoetryDBClient()
-    print(client.bootstrap_poems(user_id='sughanrichardson'))
+    for count in range(0,10):
+        print(client.bootstrap_poems(user_id='sughanrichardson'))
 
 
