@@ -8,6 +8,8 @@ Do not change PK/SK or attribute names in items.
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+import random
+from typing import Any, Dict
 
 import boto3
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
@@ -178,6 +180,52 @@ def get_poem_values(content_id: str) -> Dict[str, Any]:
             result[str(sk)] = it["VALUE"]
     return result
 
+
+
+def get_random_poem() -> Dict[str, Any]:
+    """
+    Get a random poem from DynamoDB.
+    """
+
+    table_name = _table_name_from_arn(
+        DYNAMODB_RESOURCE_ARN
+    )
+
+    # Step 1:
+    # Scan only PK + SK for efficiency
+    resp = _client().scan(
+        TableName=table_name,
+        ProjectionExpression="#pk, #sk, #value",
+        ExpressionAttributeNames={
+            "#pk": DDB_PK_ATTR,
+            "#sk": DDB_SK_ATTR,
+            "#value": "VALUE",
+        },
+    )
+
+    items = [
+        _from_av_map(av)
+        for av in resp.get("Items", [])
+    ]
+
+    if not items:
+        return {}
+
+    # Step 2:
+    # Get unique PKs only
+    unique_pks = list({
+        item[DDB_PK_ATTR]
+        for item in items
+    })
+
+    # Step 3:
+    # Choose random PK
+    random_pk = random.choice(unique_pks)
+
+    # Step 4:
+    # Reuse your existing function
+    return get_poem_values(random_pk)
+
 # ---------------- Convenience helpers ----------------
 
 def create_poem(*, content_id: str, user_id: str, title: str, body: str, author: str, tags: Any, status: str) -> Dict[str, Any]:
@@ -225,5 +273,6 @@ if __name__ == "__main__":
         )
         print("Created:", out.keys())
         print(get_poem_values("homepage"))
+        print(get_random_poem())
     except Exception as error:
         raise error

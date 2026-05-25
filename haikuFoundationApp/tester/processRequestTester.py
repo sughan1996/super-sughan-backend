@@ -33,6 +33,6 @@ event_2 = {
 
 if __name__ == "__main__":
     print(lambda_handler(event_0, None))
-    print(lambda_handler(event_1, None))
-    print(lambda_handler(event_2, None))
+    # print(lambda_handler(event_1, None))
+    # print(lambda_handler(event_2, None))
 

@@ -1,4 +1,4 @@
-from haikuFoundationApp.jobs.poemsHandler import get_poem_values
+from dbmodels.poemsHandler import get_poem_values, get_random_poem
 from haikuFoundationApp.jobs.usersHandler import get_user_id_values
 
 
@@ -9,5 +9,5 @@ def post_profile_controller(event):
 
 
 def post_home_controller(event):
-  output = get_poem_values("homepage")
+  output = get_random_poem()
   return output
