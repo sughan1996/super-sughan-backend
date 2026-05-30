@@ -58,6 +58,7 @@ def get_geopolitics_news(featured_count: int = 10) -> dict:
                 "published": article["webPublicationDate"],
                 "section": article["sectionName"],
                 "description": article.get("fields", {}).get("trailText"),
+                "thumbnail": article.get("thumbnail"),
                 "author": article.get("fields", {}).get("byline"),
             }
             for article in articles[:featured_count]
@@ -80,4 +81,4 @@ class InternationalController:
 
 if __name__ == "__main__":
     news = InternationalController()
-    print(news.post({"module": "FEATURED", "action": "POST"}))
+    print(news.post({"module": "INTERNATIONAL", "action": "POST"}))

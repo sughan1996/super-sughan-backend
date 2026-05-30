@@ -3,7 +3,7 @@ WELCOME_NOTE = ("Welcome to the Haiku Foundation. We’re glad you’re here. "
                 "No excess, no noise—just moments, carefully observed and carefully spoken. "
                 "Whether you’re new to haiku or have been writing for years, this is a place to read, write, and share at your own pace. "
                 "Take what resonates, leave what doesn’t, and enjoy the quiet clarity this form brings."
-                " Thanks for stopping by. Make yourself at home."
+                " Thanks for stopping by. Make yourself at poems."
                 " I had never thought of haiku, or any kind of poetry for that matter, as a social activity. "
                 "― Abigail Friedman, The Haiku Apprentice: Memoirs of Writing Poetry in Japan")
 ROMANTIC_LIST = [
@@ -16,7 +16,7 @@ ROMANTIC_LIST = [
     "Two sparrows at dusk\nsharing one fading sunlight\nrefusing the night — Kobayashi Issa",
     "Snow melts in my palm\nbut your warmth stays longer still\nwinter forgets us — Matsuo Bashō",
     "Soft rain on window\nI trace your name in silence\nit answers back slow — Masaoka Shiki",
-    "The river curves home\nlike my thoughts always return\nto where you once stood — Yosa Buson",
+    "The river curves poems\nlike my thoughts always return\nto where you once stood — Yosa Buson",
     "Your voice in evening\nlike lanterns floating upward\nI follow in dark — Anonymous",
 
     "I wish I knew how to quit you — Brokeback Mountain — Ang Lee",
@@ -60,7 +60,7 @@ ROMANTIC_LIST = [
     "You are my greatest adventure — Up — Pete Docter",
     "Every version of me\nchooses every version of you — Anonymous",
     "I fell in love\nslowly then all at once — Anonymous modern line",
-    "You feel like home\nI never had but always needed — Anonymous",
+    "You feel like poems\nI never had but always needed — Anonymous",
     "Stay with me — Anonymous romantic film dialogue",
     "I choose you\nover and over again — Anonymous",
 
@@ -139,7 +139,7 @@ EXPLORE_LIST_1 = [
     "Elementary, my dear Watson — Sherlock Holmes (adaptations) — Various",
     "I volunteer as tribute — The Hunger Games — Gary Ross",
     "This is Sparta — 300 — Zack Snyder",
-    "E.T. phone home — E.T. — Steven Spielberg",
+    "E.T. phone poems — E.T. — Steven Spielberg",
     "I'm just one stomach flu away from my goal weight — The Devil Wears Prada — David Frankel",
     "With great power comes great responsibility — Spider-Man — Sam Raimi",
     "You had me at hello — Jerry Maguire — Cameron Crowe",
@@ -164,7 +164,7 @@ EXPLORE_LIST_2 = [
     "Welcome to the party, pal — Die Hard — John McTiernan",
     "Yippee-ki-yay — Die Hard — John McTiernan",
     "I'll have what she's having — When Harry Met Sally — Rob Reiner",
-    "There’s no place like home — The Wizard of Oz — Victor Fleming",
+    "There’s no place like poems — The Wizard of Oz — Victor Fleming",
     "I feel the need—the need for speed — Top Gun — Tony Scott",
     "Hasta la vista, baby — Terminator 2 — James Cameron",
     "Get busy living or get busy dying — The Shawshank Redemption — Frank Darabont",

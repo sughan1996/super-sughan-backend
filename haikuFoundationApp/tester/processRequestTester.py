@@ -16,7 +16,7 @@ response = requests.request("POST", url, headers=headers, data=payload).json()
 access_token = response['AuthenticationResult']['AccessToken']
 event_0 = {
     "httpMethod": "POST",
-    "body": json.dumps({"requestMethod": "/home", "userId": "samsonbabuji"}),
+    "body": json.dumps({"requestMethod": "/poems", "userId": "samsonbabuji"}),
     "headers": {
         "Authorization": 'Bearer ' + access_token}}
 event_1 = {

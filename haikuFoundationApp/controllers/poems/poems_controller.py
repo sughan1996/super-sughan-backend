@@ -1,7 +1,7 @@
 from haikuFoundationApp.requester.postController import post_home_controller
 
 
-class HomeController:
+class PoemsController:
 
     def get(self, event):
         return {

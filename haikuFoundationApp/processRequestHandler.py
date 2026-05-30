@@ -25,7 +25,7 @@ class NotFoundController:
 
 
 CONTROLLERS = LazyLoadingRegister({
-    "/home": HomeController,
+    "/poems": HomeController,
     "/explore": ExploreController,
     "/topics": TopicController,
     "/saved": SavedController,
